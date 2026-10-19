@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FitVibe | 減脂人分類美食輪盤 & 附近店家導航</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --primary: #10b981;
+      --primary-dark: #059669;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 10%, #ecfdf5, var(--bg));
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    #confettiCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none !important;
+      z-index: 99;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    header h1 {
+      font-size: 2.1rem;
+      font-weight: 800;
+      color: #065f46;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-top: 0.35rem;
+    }
+
+    .main-wrap {
+      width: 100%;
+      max-width: 940px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+      .main-wrap {
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: center;
+      }
+    }
+
+    /* 輪盤區塊 */
+    .wheel-container {
+      background: var(--card-bg);
+      border-radius: 1.5rem;
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .wheel-box {
+      position: relative;
+      width: 350px;
+      height: 350px;
+      margin: 0.75rem 0;
+    }
+
+    canvas#wheelCanvas {
+      width: 350px;
+      height: 350px;
+      border-radius: 50%;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+    }
+
+    .pointer {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 14px solid transparent;
+      border-right: 14px solid transparent;
+      border-top: 28px solid #dc2626;
+      z-index: 10;
+      filter: drop-shadow(0 3px 4px rgba(0,0,0,0.3));
+      transition: transform 0.05s;
+    }
+
+    .pointer.active {
+      transform: translateX(-50%) scale(1.15) rotate(4deg);
+    }
+
+    /* 控制面板 */
+    .panel {
+      flex: 1;
+      width: 100%;
+      background: var(--card-bg);
+      border-radius: 1.5rem;
+      padding: 1.75rem;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .category-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    .category-btn {
+      background: #f1f5f9;
+      border: 1.5px solid #cbd5e1;
+      padding: 0.6rem 0.6rem;
+      border-radius: 0.75rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+      line-height: 1.3;
+    }
+
+    .category-btn span {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .category-btn.active {
+      background: #ecfdf5;
+      border-color: #10b981;
+      color: #065f46;
+      box-shadow: 0 4px 10px rgba(16, 185, 129, 0.15);
+    }
+
+    .category-btn.active.cheat-theme {
+      background: #fff1f2;
+      border-color: #f43f5e;
+      color: #9f1239;
+      box-shadow: 0 4px 10px rgba(244, 63, 94, 0.15);
+    }
+
+    .tag-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      max-height: 140px;
+      overflow-y: auto;
+      padding: 0.6rem;
+      background: #f8fafc;
+      border-radius: 0.75rem;
+      border: 1px dashed var(--border);
+    }
+
+    .tag {
+      background: #e2e8f0;
+      color: #334155;
+      padding: 0.3rem 0.7rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .tag .cal-badge {
+      background: rgba(0, 0, 0, 0.08);
+      padding: 0.1rem 0.4rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      color: #0f172a;
+    }
+
+    .tag button {
+      background: none;
+      border: none;
+      color: #ef4444;
+      font-weight: 800;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .input-row input {
+      padding: 0.65rem 0.8rem;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 0.75rem;
+      outline: none;
+      font-size: 0.9rem;
+    }
+
+    .input-row input:focus {
+      border-color: var(--primary);
+    }
+
+    .btn {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      border: none;
+      padding: 0.8rem 1.5rem;
+      border-radius: 0.85rem;
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn:disabled {
+      background: #cbd5e1;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    /* 開獎卡 */
+    .result-card {
+      margin-top: 0.75rem;
+      width: 100%;
+      padding: 1.1rem 1.25rem;
+      border-radius: 1rem;
+      background: #f0fdf4;
+      border: 1.5px solid #bbf7d0;
+      display: none;
+      animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .result-card.cheat-theme {
+      background: #fff1f2;
+      border-color: #fecdd3;
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .result-food {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #065f46;
+      margin: 0.2rem 0;
+    }
+
+    .result-card.cheat-theme .result-food {
+      color: #9f1239;
+    }
+
+    .result-cal {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #059669;
+    }
+
+    .result-card.cheat-theme .result-cal {
+      color: #e11d48;
+    }
+
+    .result-advice {
+      font-size: 0.88rem;
+      color: #1e293b;
+      margin: 0.5rem 0 0.8rem 0;
+      padding-top: 0.5rem;
+      border-top: 1px dashed rgba(0,0,0,0.1);
+      line-height: 1.5;
+    }
+
+    /* 地圖導航按鈕 */
+    .map-btn {
+      width: 100%;
+      background: #0284c7;
+      color: white;
+      text-decoration: none;
+      padding: 0.65rem 1rem;
+      border-radius: 0.75rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      transition: all 0.2s;
+      box-shadow: 0 4px 10px rgba(2, 132, 199, 0.25);
+    }
+
+    .map-btn:hover {
+      background: #0369a1;
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="confettiCanvas"></canvas>
+
+  <header>
+    <h1>🥗 FitVibe 減脂分類輪盤 🍕</h1>
+    <p>四大情境分類 ✕ 卡路里標記 ✕ 附近店家導航，今天吃什麼不糾結！</p>
+  </header>
+
+  <div class="main-wrap">
+    <!-- 輪盤主體 -->
+    <div class="wheel-container">
+      <div class="wheel-box">
+        <div id="pointer" class="pointer"></div>
+        <canvas id="wheelCanvas" width="350" height="350"></canvas>
+      </div>
+
+      <button id="spinBtn" class="btn" style="width: 100%;">
+        🎲 開轉！決定今日飲食
+      </button>
+
+      <!-- 中獎開獎卡 -->
+      <div id="resultCard" class="result-card">
+        <div class="result-header">
+          <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">🎯 抽中餐點：</span>
+          <span id="resultCal" class="result-cal">480 kcal</span>
+        </div>
+        <div id="resultFood" class="result-food">舒肥雞胸肉便當</div>
+        <div id="resultAdvice" class="result-advice">營養指引：含有約 35g 優質蛋白質，飽足感十足，維持肌肉最佳選擇！</div>
+        
+        <!-- 一鍵導航附近店家 -->
+        <a id="mapLink" class="map-btn" href="#" target="_blank">
+          📍 尋找我附近的店家 (Google Maps)
+        </a>
+      </div>
+    </div>
+
+    <!-- 分類與自訂面板 -->
+    <div class="panel">
+      <div>
+        <label style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem; display: block;">⚡ 選擇食物分類情境：</label>
+        <div class="category-group">
+          <button class="category-btn active" onclick="loadCategory('clean')">
+            🥗 低 GI 嚴格減脂
+            <span>350 ~ 500 kcal（平穩血糖）</span>
+          </button>
+          <button class="category-btn" onclick="loadCategory('daily')">
+            🍱 外食平衡日常
+            <span>500 ~ 750 kcal（上班/上課首選）</span>
+          </button>
+          <button class="category-btn" onclick="loadCategory('protein')">
+            🍗 高蛋白大滿足
+            <span>700 ~ 950 kcal（重訓肌力補給）</span>
+          </button>
+          <button class="category-btn" onclick="loadCategory('cheat')">
+            🍕 快樂合法放縱
+            <span>900 ~ 1350 kcal（Cheat Day 放鬆）</span>
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <label style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem; display: block;">📋 目前輪盤項目與熱量（點 ✕ 移除）：</label>
+        <div id="tagContainer" class="tag-container"></div>
+      </div>
+
+      <div>
+        <label style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem; display: block;">➕ 自訂餐點與卡路里：</label>
+        <div class="input-row">
+          <input type="text" id="foodName" placeholder="餐點名稱 (如: 鮭魚丼飯)" style="flex: 2;">
+          <input type="number" id="foodCal" placeholder="大卡 (kcal)" style="flex: 1;" min="50" max="3000">
+          <button class="btn" style="padding: 0.65rem 1rem; font-size: 0.95rem;" onclick="addCustomFood()">加入</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 四大分類美食與熱量資料庫
+    const categories = {
+      clean: {
+        theme: 'clean',
+        items: [
+          { name: "舒肥雞胸健康餐", cal: 450, advice: "蛋白質約 35g，高纖低脂，維持代謝與肌肉線條滿分！" },
+          { name: "香烤鮭魚低GI餐", cal: 490, advice: "富含優質 Omega-3 與抗氧化脂肪，減脂期抗發炎聖品。" },
+          { name: "超商地瓜+無糖豆漿", cal: 360, advice: "優質低 GI 複合碳水，方便快速，下午念書運動能量充足！" },
+          { name: "清蒸海鱸魚飯包", cal: 410, advice: "肉質細嫩好消化，清淡原味無負擔，晚餐吃零壓力。" },
+          { name: "蒜香毛豆豆腐糙米飯", cal: 380, advice: "高纖植物蛋白，大豆異黃酮與抗性澱粉雙管齊下。" },
+          { name: "鮮蝦藜麥溫沙拉", cal: 420, advice: "熱量低飽足感超高，搭配和風油醋醬就是完美的一餐！" }
+        ]
+      },
+      daily: {
+        theme: 'clean',
+        items: [
+          { name: "去皮烤雞腿便當", cal: 620, advice: "去皮少醬汁熱量省下近 200 大卡！兼顧飽足與美味的日常外食。" },
+          { name: "清燉半筋半肉牛肉麵", cal: 580, advice: "清燉湯頭比紅燒更清爽，半筋富含膠質，記得多配燙青菜！" },
+          { name: "招牌水餃 (10顆)", cal: 520, advice: "份量剛好、蛋白質與澱粉均衡，沾薄鹽醬油更健康！" },
+          { name: "日式綜合海鮮丼", cal: 560, advice: "優質生魚片蛋白質豐富，醋飯開胃易吸收，無油煎炸負擔！" },
+          { name: "皮蛋瘦肉粥+滷蛋", cal: 510, advice: "溫暖腸胃好消化，加顆滷蛋補足蛋白質，日常好選擇。" },
+          { name: "義式番茄雞肉筆管麵", cal: 650, advice: "番茄紅醬比白醬更輕盈！筆管麵飽足感持久，能量滿格。" }
+        ]
+      },
+      protein: {
+        theme: 'clean',
+        items: [
+          { name: "炭火原塊牛排 (10oz)", cal: 780, advice: "肌酸與鐵質滿滿！紅肉是力量來源，運動後吃吸收率最佳！" },
+          { name: "自組鐵板燒(雙份牛/雞)", cal: 720, advice: "吩咐師傅少油少醬，滿滿雙份肉搭配豆芽與高麗菜，蛋白質爆表！" },
+          { name: "韓式烤五花包生菜", cal: 850, advice: "一片肉配三片生菜包泡菜！利用膳食纖維包裹油脂，大口吃肉無罪惡！" },
+          { name: "雙層牛肉吉士堡(單點)", cal: 710, advice: "單點漢堡不配薯條，熱量可控且含有逾 30g 蛋白質，速食也能很健美！" },
+          { name: "舒肥嫩煎鮭魚牛排雙拼", cal: 820, advice: "海陸雙重蛋白質轟炸，修復肌纖維的最佳大餐！" }
+        ]
+      },
+      cheat: {
+        theme: 'cheat',
+        items: [
+          { name: "美式酥脆炸雞 (2塊+小薯)", cal: 950, advice: "放心享受酥脆幸福！今天多喝 1000ml 水排鈉，散步 40 分鐘即可平衡～" },
+          { name: "濃郁日式叉燒豚骨拉麵", cal: 920, advice: "碳水與濃湯的心靈撫慰！湯底喝幾口嚐鮮，減脂是一輩子的事，開心最重要！" },
+          { name: "義式窯烤起司披薩 (3片)", cal: 960, advice: "滿滿拉絲起司補充鈣質，大口咬下！明天做兩組深蹲轉化為肌肉能量！" },
+          { name: "麻辣鴛鴦火鍋吃到飽", cal: 1350, advice: "多吃肉片與菇類、青菜，今天徹底解放食慾，明天代謝開 Turbo！" },
+          { name: "手搖波霸厚黑糖鮮奶", cal: 680, advice: "甜到心坎裡的快樂！今天下午工作與讀書效率保證衝刺翻倍～" }
+        ]
+      }
+    };
+
+    let currentCategoryKey = 'clean';
+    let currentItems = JSON.parse(JSON.stringify(categories.clean.items));
+    let startAngle = 0;
+    let isSpinning = false;
+    let userLocation = null; // 儲存使用者經緯度
+
+    // 嘗試預先取得 GPS 定位
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          userLocation = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude
+          };
+        },
+        (err) => {
+          console.log("未開啟定位或定位被拒絕，將使用預設搜尋");
+        }
+      );
+    }
+
+    // 輪盤配色
+    const cleanColors = ['#a7f3d0', '#6ee7b7', '#bae6fd', '#fed7aa', '#fde68a', '#ddd6fe'];
+    const cheatColors = ['#fecdd3', '#fda4af', '#fed7aa', '#fde68a', '#e9d5ff', '#fed7aa'];
+
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+    const spinBtn = document.getElementById('spinBtn');
+    const pointer = document.getElementById('pointer');
+
+    // Web Audio 音效產生器
+    let audioCtx = null;
+    function playTick() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(480, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.04);
+      gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.04);
+    }
+
+    // 繪製輪盤
+    function drawWheel() {
+      const num = currentItems.length;
+      const arc = (2 * Math.PI) / num;
+      const radius = canvas.width / 2;
+      const palette = categories[currentCategoryKey].theme === 'cheat' ? cheatColors : cleanColors;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < num; i++) {
+        const angle = startAngle + i * arc;
+        ctx.fillStyle = palette[i % palette.length];
+
+        ctx.beginPath();
+        ctx.arc(radius, radius, radius - 4, angle, angle + arc, false);
+        ctx.lineTo(radius, radius);
+        ctx.fill();
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // 繪製文字 (食物名稱 + 熱量)
+        ctx.save();
+        ctx.fillStyle = '#0f172a';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.translate(
+          radius + Math.cos(angle + arc / 2) * (radius - 24),
+          radius + Math.sin(angle + arc / 2) * (radius - 24)
+        );
+        ctx.rotate(angle + arc / 2);
+
+        let label = currentItems[i].name;
+        if (label.length > 7) label = label.substring(0, 6) + '..';
+        
+        ctx.font = 'bold 13px sans-serif';
+        ctx.fillText(label, 0, -8);
+        
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillStyle = categories[currentCategoryKey].theme === 'cheat' ? '#be123c' : '#047857';
+        ctx.fillText(`${currentItems[i].cal} kcal`, 0, 8);
+
+        ctx.restore();
+      }
+
+      // 中心小圓扣
+      ctx.beginPath();
+      ctx.arc(radius, radius, 24, 0, 2 * Math.PI);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = categories[currentCategoryKey].theme === 'cheat' ? '#f43f5e' : '#10b981';
+      ctx.stroke();
+    }
+
+    // 旋轉動態
+    function spin() {
+      if (isSpinning || currentItems.length < 2) return;
+      isSpinning = true;
+      spinBtn.disabled = true;
+      document.getElementById('resultCard').style.display = 'none';
+
+      let velocity = Math.random() * 0.25 + 0.45;
+      const friction = 0.985;
+      const num = currentItems.length;
+      const arc = (2 * Math.PI) / num;
+      let lastSliceIndex = -1;
+
+      function animate() {
+        startAngle += velocity;
+        velocity *= friction;
+
+        const pointerAngle = (3 * Math.PI / 2 - startAngle) % (2 * Math.PI);
+        const normalizedAngle = pointerAngle < 0 ? pointerAngle + 2 * Math.PI : pointerAngle;
+        const currentSlice = Math.floor(normalizedAngle / arc);
+
+        if (currentSlice !== lastSliceIndex) {
+          lastSliceIndex = currentSlice;
+          playTick();
+          pointer.classList.add('active');
+          setTimeout(() => pointer.classList.remove('active'), 40);
+        }
+
+        drawWheel();
+
+        if (velocity > 0.002) {
+          requestAnimationFrame(animate);
+        } else {
+          isSpinning = false;
+          spinBtn.disabled = false;
+          const winner = currentItems[currentSlice];
+          showResult(winner);
+          triggerConfetti();
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    function showResult(item) {
+      const card = document.getElementById('resultCard');
+      const food = document.getElementById('resultFood');
+      const cal = document.getElementById('resultCal');
+      const advice = document.getElementById('resultAdvice');
+      const mapLink = document.getElementById('mapLink');
+
+      if (categories[currentCategoryKey].theme === 'cheat') {
+        card.classList.add('cheat-theme');
+      } else {
+        card.classList.remove('cheat-theme');
+      }
+
+      food.textContent = item.name;
+      cal.textContent = `${item.cal} kcal`;
+      advice.textContent = item.advice || `【熱量約 ${item.cal} kcal】好好享受這頓美食，維持心情愉快！`;
+
+      // 智慧組裝 Google Maps 導航連結
+      const queryName = encodeURIComponent(item.name.replace(/\(.*\)/, '').trim());
+      if (userLocation) {
+        mapLink.href = `https://www.google.com/maps/search/${queryName}/@${userLocation.lat},${userLocation.lng},15z`;
+      } else {
+        mapLink.href = `https://www.google.com/maps/search/${queryName}`;
+      }
+
+      card.style.display = 'block';
+    }
+
+    // 分類切換
+    function loadCategory(key) {
+      currentCategoryKey = key;
+      document.querySelectorAll('.category-btn').forEach(btn => {
+        btn.classList.remove('active', 'cheat-theme');
+      });
+
+      const activeBtn = event.currentTarget;
+      if (categories[key].theme === 'cheat') {
+        activeBtn.classList.add('active', 'cheat-theme');
+        spinBtn.style.background = 'linear-gradient(135deg, #f43f5e, #e11d48)';
+      } else {
+        activeBtn.classList.add('active');
+        spinBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+      }
+
+      currentItems = JSON.parse(JSON.stringify(categories[key].items));
+      renderTags();
+    }
+
+    // 標籤清單管理
+    function renderTags() {
+      const container = document.getElementById('tagContainer');
+      container.innerHTML = '';
+      currentItems.forEach((item, index) => {
+        const tag = document.createElement('div');
+        tag.className = 'tag';
+        tag.innerHTML = `
+          <span>${escapeHtml(item.name)}</span>
+          <span class="cal-badge">${item.cal}k</span>
+          <button onclick="removeFood(${index})" title="刪除">✕</button>
+        `;
+        container.appendChild(tag);
+      });
+      drawWheel();
+    }
+
+    function addCustomFood() {
+      const nameInput = document.getElementById('foodName');
+      const calInput = document.getElementById('foodCal');
+      const name = nameInput.value.trim();
+      const cal = parseInt(calInput.value) || 500;
+
+      if (!name) return;
+      if (currentItems.length >= 16) {
+        alert('輪盤最多容納 16 個選項唷！');
+        return;
+      }
+
+      currentItems.push({
+        name: name,
+        cal: cal,
+        advice: `這份自訂餐點約 ${cal} kcal，依照你的步調開心享用！`
+      });
+
+      nameInput.value = '';
+      calInput.value = '';
+      renderTags();
+    }
+
+    function removeFood(index) {
+      if (currentItems.length <= 2) {
+        alert('至少要保留 2 個選項才能轉動輪盤唷！');
+        return;
+      }
+      currentItems.splice(index, 1);
+      renderTags();
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    spinBtn.addEventListener('click', spin);
+
+    // --- 慶祝紙花粒子 ---
+    const confettiCvs = document.getElementById('confettiCanvas');
+    const cCtx = confettiCvs.getContext('2d');
+    let particles = [];
+
+    function resizeConfetti() {
+      confettiCvs.width = window.innerWidth;
+      confettiCvs.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeConfetti);
+    resizeConfetti();
+
+    function triggerConfetti() {
+      particles = [];
+      const isCheat = categories[currentCategoryKey].theme === 'cheat';
+      const pColors = isCheat 
+        ? ['#f43f5e', '#fb7185', '#fda4af', '#f59e0b', '#38bdf8']
+        : ['#10b981', '#34d399', '#6ee7b7', '#38bdf8', '#fde68a'];
+
+      for (let i = 0; i < 50; i++) {
+        particles.push({
+          x: window.innerWidth / 2,
+          y: window.innerHeight / 2,
+          size: Math.random() * 9 + 4,
+          color: pColors[Math.floor(Math.random() * pColors.length)],
+          vx: (Math.random() - 0.5) * 14,
+          vy: (Math.random() - 0.5) * 14 - 3,
+          alpha: 1,
+          rot: Math.random() * 360,
+          rotSpeed: (Math.random() - 0.5) * 10
+        });
+      }
+      requestAnimationFrame(updateConfetti);
+    }
+
+    function updateConfetti() {
+      cCtx.clearRect(0, 0, confettiCvs.width, confettiCvs.height);
+      particles.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.25;
+        p.alpha -= 0.015;
+        p.rot += p.rotSpeed;
+
+        cCtx.save();
+        cCtx.globalAlpha = Math.max(0, p.alpha);
+        cCtx.translate(p.x, p.y);
+        cCtx.rotate((p.rot * Math.PI) / 180);
+        cCtx.fillStyle = p.color;
+        cCtx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+        cCtx.restore();
+      });
+
+      particles = particles.filter((p) => p.alpha > 0);
+      if (particles.length > 0) requestAnimationFrame(updateConfetti);
+    }
+
+    // 初始化
+    renderTags();
+  </script>
+</body>
+</html>
